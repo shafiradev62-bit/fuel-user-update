@@ -1,0 +1,46 @@
+[
+  {
+    "id": "user-1765587895182",
+    "fullName": "shafira dev",
+    "email": "shafiradev62@gmail.com",
+    "phone": "",
+    "city": "",
+    "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocK_nhuTpTplOE8lNYd0qU6zEmBirwoqej9HV9JU5Uwb7B1DkUU=s96-c",
+    "vehicles": []
+  },
+  {
+    "id": "user-1765670998225",
+    "fullName": "rahmivina23",
+    "email": "rahmivina23@student.upi.edu",
+    "phone": "",
+    "city": "",
+    "avatarUrl": "https://ui-avatars.com/api/?name=rahmivina23&background=random",
+    "vehicles": []
+  },
+  {
+    "id": "user-1765771057940",
+    "fullName": "rahmivina230",
+    "email": "rahmivina230@gmail.com",
+    "phone": "",
+    "city": "",
+    "avatarUrl": "https://ui-avatars.com/api/?name=rahmivina230&background=random",
+    "vehicles": []
+  },
+  {
+    "id": "user-1765994467986",
+    "fullName": "M Wasilah Hadi",
+    "email": "m.wasilahhadi@gmail.com",
+    "phone": "6289502694005",
+    "city": "",
+    "avatarUrl": "https://ui-avatars.com/api/?name=M%20Wasilah%20Hadi&background=random",
+    "vehicles": [
+      {
+        "id": "v-1765994467986",
+        "brand": "honda",
+        "color": "red",
+        "licenseNumber": "1232412412",
+        "fuelType": "Petrol"
+      }
+    ]
+  }
+]

@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fuel-user
+  namespace: fuel-friend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fuel-user
+  template:
+    metadata:
+      labels:
+        app: fuel-user
+    spec:
+      containers:
+      - name: fuel-user
+        image: your-dockerhub-username/fuel-user-backend:latest
+        ports:
+        - containerPort: 4000
+        envFrom:
+        - secretRef:
+            name: fuel-user-env
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fuel-user-service
+  namespace: fuel-friend
+spec:
+  selector:
+    app: fuel-user
+  ports:
+  - port: 4000
+    targetPort: 4000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fuel-user-ingress
+  namespace: fuel-friend
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: api.72.61.69.116.nip.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: fuel-user-service
+            port:
+              number: 4000

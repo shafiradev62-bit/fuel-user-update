@@ -1,0 +1,374 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 142 76% 36%;
+    --primary-foreground: 355.7 100% 97.3%;
+    --secondary: 210 40% 98%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 98%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 98%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 142 76% 36%;
+    --radius: 0.5rem;
+
+    /* Additional fuel-agent styles */
+    --button-outline: hsl(var(--primary));
+    --badge-outline: rgba(0, 0, 0, .05);
+    --elevate-1: rgba(0, 0, 0, .03);
+    --elevate-2: rgba(0, 0, 0, .08);
+    --font-sans: 'Poppins', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --shadow-sm: 0px 2px 4px 0px hsl(220 15% 20% / 0.06);
+    --shadow: 0px 4px 6px 0px hsl(220 15% 20% / 0.07);
+    --shadow-lg: 0px 10px 20px 0px hsl(220 15% 20% / 0.10);
+  }
+
+  .dark {
+    --background: 0 0% 0%; /* Pure black */
+    --foreground: 0 0% 100%; /* Pure white */
+    --card: 0 0% 0%; /* Pure black */
+    --card-foreground: 0 0% 100%; /* Pure white */
+    --popover: 0 0% 0%; /* Pure black */
+    --popover-foreground: 0 0% 100%; /* Pure white */
+    --primary: 142 76% 36%;
+    --primary-foreground: 355.7 100% 97.3%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 142 76% 36%;
+
+    --button-outline: hsl(var(--primary));
+    --badge-outline: rgba(255, 255, 255, .05);
+    --elevate-1: rgba(255, 255, 255, .04);
+    --elevate-2: rgba(255, 255, 255, .09);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Poppins', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    /* Mobile safe area support */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  html,
+  body,
+  #root,
+  .overflow-y-auto,
+  .overflow-x-auto {
+    overscroll-behavior-y: none;
+    overscroll-behavior-x: none;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Responsive base scaling */
+@layer base {
+  html {
+    font-size: 16px;
+  }
+
+  @media (max-width: 480px) {
+    html {
+      font-size: 15px;
+    }
+  }
+
+  @media (max-width: 420px) {
+    html {
+      font-size: 14px;
+    }
+  }
+
+  @media (max-width: 360px) {
+    html {
+      font-size: 13px;
+    }
+  }
+
+  body,
+  #root {
+    max-width: 100vw;
+    overflow-x: hidden;
+    width: 100%;
+    height: 100%;
+    position: fixed;
+    /* Force fixed height */
+  }
+
+  body {
+    overflow-y: hidden;
+    /* Prevent body scroll */
+  }
+
+  #root {
+    overflow-y: auto;
+    /* Allow root internal scroll */
+    overscroll-behavior-y: none;
+    /* Prevent bounce on root */
+  }
+
+  body {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+}
+
+/* Mobile optimizations */
+@layer utilities {
+
+  /* iOS-style page transitions */
+  .page {
+    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s ease-out;
+  }
+
+  .animate-page-enter {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  .animate-page-exit {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+
+  /* iOS-style button interactions */
+  .ios-button {
+    transition: all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .ios-button:active {
+    transform: scale(0.96);
+  }
+
+  /* iOS-style input focus */
+  .ios-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(58, 195, 108, 0.2);
+    transform: scale(1.01);
+    transition: all 0.2s ease-out;
+  }
+
+  /* iOS-style scroll behavior */
+  .ios-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  /* iOS-style selection */
+  ::selection {
+    background: rgba(58, 195, 108, 0.3);
+  }
+
+  /* iOS-style tap highlight removal */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-text-sm {
+    font-size: 16px;
+    /* Prevent zoom on iOS */
+  }
+
+  .mobile-btn-md {
+    min-height: 44px;
+    /* iOS touch target */
+  }
+
+  .touch-target-real {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .no-zoom-input {
+    font-size: 16px !important;
+  }
+
+  .mobile-container {
+    @apply w-full max-w-md mx-auto px-4;
+  }
+
+  .mobile-padding {
+    @apply px-4 py-6;
+  }
+
+  .mobile-safe-area {
+    @apply pb-20;
+  }
+
+  .mobile-header {
+    @apply py-4 px-4;
+  }
+
+  .mobile-content {
+    @apply px-4 py-2;
+  }
+
+  .mobile-card {
+    @apply rounded-xl p-4;
+  }
+
+  .mobile-button {
+    @apply h-12 rounded-lg;
+  }
+
+  .mobile-input {
+    @apply h-12 rounded-lg;
+  }
+
+  .mobile-section {
+    @apply mb-6;
+  }
+
+  .mobile-text-base {
+    @apply text-base;
+  }
+
+  .ripple {
+    @apply relative overflow-hidden;
+  }
+
+  .primary {
+    @apply bg-green-500 text-white;
+  }
+
+  /* Enhanced mobile form scaling */
+  @media (max-width: 768px) {
+    .mobile-form-input {
+      @apply px-6 py-4 text-base;
+      min-height: 48px;
+    }
+
+    .mobile-form-button {
+      @apply py-4 text-base;
+      min-height: 48px;
+    }
+
+    .mobile-stepper-circle {
+      @apply w-12 h-12;
+    }
+
+    .mobile-logo-size {
+      @apply w-32 h-32;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .mobile-form-input {
+      @apply px-5 py-3 text-sm;
+      min-height: 44px;
+    }
+
+    .mobile-form-button {
+      @apply py-3 text-sm;
+      min-height: 44px;
+    }
+
+    .mobile-stepper-circle {
+      @apply w-10 h-10;
+    }
+
+    .mobile-logo-size {
+      @apply w-28 h-28;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .mobile-form-input {
+      @apply px-4 py-3 text-sm;
+      min-height: 42px;
+    }
+
+    .mobile-form-button {
+      @apply py-3 text-sm;
+      min-height: 42px;
+    }
+
+    .mobile-stepper-circle {
+      @apply w-9 h-9;
+    }
+
+    .mobile-logo-size {
+      @apply w-24 h-24;
+    }
+  }
+}
+
+/* iOS-style toast notifications */
+.ios-toast {
+  background: rgba(255, 255, 255, 0.9) !important;
+  color: #000000 !important;
+  border: none !important;
+  border-radius: 25px !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  padding: 12px 24px !important;
+  backdrop-filter: blur(12px) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
+  width: auto !important;
+  min-width: 300px !important;
+  margin-bottom: 16px !important;
+}
+
+/* Mobile-native scroll tweaks */
+@media (max-width: 768px) {
+
+  html,
+  body,
+  #root,
+  .overflow-y-auto,
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    overscroll-behavior-x: none;
+    scrollbar-width: none;
+    box-sizing: border-box;
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  #root::-webkit-scrollbar,
+  .overflow-y-auto::-webkit-scrollbar,
+  .overflow-x-auto::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+}
+
+/* Prevent scroll on login screen */
+body.login-screen {
+  overflow: hidden;
+  height: 100vh;
+  position: fixed;
+  width: 100%;
+}

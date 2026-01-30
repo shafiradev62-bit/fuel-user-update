@@ -1,0 +1,78 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# Environment variables
+.env
+.env.local
+.env.production
+frontend/.env.local
+backend/.env.local
+
+# Google OAuth credentials
+client_secret_*.json
+frontend/client_secret_*.json
+
+# Build outputs
+frontend/dist/
+frontend/build/
+backend/dist/
+backend/build/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Capacitor
+frontend/android/app/build/
+frontend/ios/App/build/
+
+# Database
+*.db
+*.sqlite
+
+# Database seeds and migrations (temporary)
+backend/seed-*.sql
+backend/migrate-*.sql
+backend/create-*.sql
+
+# WhatsApp session
+backend/server/wa-session/
+
+# Kubernetes deployment files with secrets
+k8s-deploy.yaml
+create-secret.sh
+fuel-user-secret.yaml
+*-secret.yaml
+
+# Deployment scripts with sensitive info
+deploy-remote.sh
+webhook-server.sh
+build-push.sh
+*-deploy.sh
+setup-kubeconfig.sh
+
+# Docker credentials
+.docker/

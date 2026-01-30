@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Konfigurasi
+export KUBECONFIG="$HOME/.kube/config-vps"
+DOCKER_USERNAME="your-dockerhub-username"
+IMAGE_NAME="fuel-user-backend"
+
+echo "🐳 Building and pushing Docker image..."
+
+# Build dan push image
+docker build -f Dockerfile.backend -t $DOCKER_USERNAME/$IMAGE_NAME:latest .
+docker push $DOCKER_USERNAME/$IMAGE_NAME:latest
+
+echo "🚀 Deploying to VPS..."
+
+# Deploy ke VPS via kubectl (menggunakan kubeconfig VPS)
+kubectl set image deployment/fuel-user fuel-user=$DOCKER_USERNAME/$IMAGE_NAME:latest -n fuel-friend
+kubectl rollout status deployment/fuel-user -n fuel-friend
+kubectl get pods -n fuel-friend
+
+echo "✅ Deployment complete!"
