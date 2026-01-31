@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, SlidersHorizontal, MapPin, Star, Fuel, Mic, Plus, Minus, ShoppingBag } from 'lucide-react';
 import { Station } from '../types';
-import { apiGetStations } from '../services/api';
+import { apiGetStations, apiGetMe } from '../services/api';
 import { useAppContext } from '../context/AppContext';
 import MapboxMap from '../components/MapboxMap';
 import AnimatedPage from '../components/AnimatedPage';
@@ -106,6 +106,27 @@ const HomeScreen = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   const navigate = useNavigate();
+
+  // Validate token on component mount
+  useEffect(() => {
+    const validateToken = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      try {
+        await apiGetMe();
+      } catch (error) {
+        console.error('Token validation failed:', error);
+        logout();
+        navigate('/login');
+      }
+    };
+
+    validateToken();
+  }, [navigate, logout]);
 
   // Helper function to determine if location is in UK
   const isLocationInUK = (location: { lat: number, lon: number } | null) => {

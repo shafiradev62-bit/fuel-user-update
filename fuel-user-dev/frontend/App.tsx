@@ -137,6 +137,12 @@ const AppNavigator = () => {
     const location = useLocation();
 
     useEffect(() => {
+        console.log('🔍 AppNavigator useEffect triggered');
+        console.log('Current path:', location.pathname);
+        console.log('isAuthenticated:', isAuthenticated);
+        console.log('Browser history length:', window.history.length);
+        console.log('redirectAfterLogin:', localStorage.getItem('redirectAfterLogin'));
+        
         const publicRoutes = ['/', '/login', '/login-form', '/register', '/forgot-password', '/password-reset-success'];
         const currentPath = location.pathname;
 
@@ -160,18 +166,21 @@ const AppNavigator = () => {
             currentPath === route || currentPath.startsWith(route)
         );
 
+        console.log('publicRoutes.includes(currentPath):', publicRoutes.includes(currentPath));
+        console.log('isExemptRoute:', isExemptRoute);
+
         // Redirect authenticated users to home only if they're on public routes and not exempt, but allow splash screen to show first
-        if (isAuthenticated && publicRoutes.includes(currentPath) && !isExemptRoute && currentPath !== '/') {
+        // Skip redirect during registration process
+        if (isAuthenticated && publicRoutes.includes(currentPath) && !isExemptRoute && currentPath !== '/' && currentPath !== '/register') {
+            console.log('🚀 Redirecting authenticated user to home from:', currentPath);
             navigate('/home');
         } else if (!isAuthenticated && !publicRoutes.includes(currentPath) && !isExemptRoute) {
-            // Only redirect to login if the route specifically requires auth
-            const protectedRoutes = ['/my-orders', '/settings']
-            if (protectedRoutes.some(route => currentPath.startsWith(route))) {
+            // Redirect to login if accessing protected routes without authentication
+            const protectedRoutes = ['/home', '/my-orders', '/settings', '/profile', '/orders', '/track', '/notifications', '/checkout', '/payment'];
+            if (protectedRoutes.some(route => currentPath === route || currentPath.startsWith(route))) {
                 // Store the intended destination before redirecting to login
                 localStorage.setItem('redirectAfterLogin', currentPath);
-                if (currentPath !== '/login' && currentPath !== '/login-form') {
-                    navigate('/login');
-                }
+                navigate('/login');
             }
         }
     }, [isAuthenticated, navigate, location.pathname]);
@@ -236,23 +245,42 @@ const App = () => {
         const storedToken = localStorage.getItem('token');
 
         if (storedToken) {
+            console.log('🔑 Found stored token:', storedToken);
+            console.log('Current pathname:', window.location.pathname);
+            
+            // Skip token validation during registration
+            if (window.location.pathname === '/register') {
+                console.log('🚫 Skipping token validation during registration');
+                return;
+            }
+            
             setToken(storedToken);
-
-            // Try to restore user data from localStorage
-            const storedUser = localStorage.getItem('user');
-
-            if (storedUser) {
+            
+            // Validate token with backend
+            const validateToken = async () => {
                 try {
-                    const userData = JSON.parse(storedUser);
+                    console.log('🔍 Validating token with backend...');
+                    const userData = await apiGetMe();
+                    console.log('✅ Token valid, user data:', userData);
                     setUser(userData);
-                    setIsAuthenticated(true);
+                    // Don't set authenticated during registration flow
+                    if (!window.location.pathname.includes('/register')) {
+                        setIsAuthenticated(true);
+                    }
                 } catch (error) {
-                    console.error('Failed to parse stored user data:', error);
-                    // Clear invalid data
+                    console.error('❌ Token validation failed:', error);
+                    // Clear invalid token
                     localStorage.removeItem('token');
                     localStorage.removeItem('user');
+                    setToken(null);
+                    setUser(null);
+                    setIsAuthenticated(false);
                 }
-            }
+            };
+            
+            validateToken();
+        } else {
+            console.log('🚫 No token found in localStorage');
         }
 
         // Load saved theme or detect system preference
@@ -430,7 +458,10 @@ const App = () => {
     const updateUser = (updatedUser: User) => {
         setUser(updatedUser);
         if (updatedUser) {
-            setIsAuthenticated(true);
+            // Only set authenticated if not in registration flow
+            if (!window.location.pathname.includes('/register')) {
+                setIsAuthenticated(true);
+            }
             // Save user data to localStorage
             localStorage.setItem('user', JSON.stringify(updatedUser));
         }

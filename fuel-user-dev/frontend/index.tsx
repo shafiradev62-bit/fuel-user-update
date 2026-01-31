@@ -57,7 +57,7 @@ const showUpdateNotification = () => {
 };
 
 // Only register service worker for web platform in production
-if ('serviceWorker' in navigator && !Capacitor.isNativePlatform()) {
+if ('serviceWorker' in navigator && !Capacitor.isNativePlatform() && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
       .then((registration) => {
@@ -103,8 +103,4 @@ if (!rootElement) {
 }
 
 const root = ReactDOM.createRoot(rootElement);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+root.render(<App />);

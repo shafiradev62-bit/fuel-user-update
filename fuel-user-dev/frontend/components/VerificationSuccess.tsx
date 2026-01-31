@@ -14,10 +14,8 @@ const VerificationSuccess = ({ type = 'email', formData, onCreateAccount }: { ty
     if (onCreateAccount) {
       setLoading(true);
       try {
-        // Create account and save token
+        // Create account - createAccount function will handle redirect
         await onCreateAccount();
-        // Navigate to home after successful account creation
-        navigate('/home');
       } catch (error) {
         console.error('Failed to create account:', error);
         setLoading(false);

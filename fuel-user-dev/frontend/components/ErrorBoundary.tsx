@@ -21,11 +21,14 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Uncaught error:', error, errorInfo);
-    // Auto-redirect to home after 1 second
-    setTimeout(() => {
-      window.location.href = '/home';
-    }, 1000);
+    console.error('🚨 ErrorBoundary caught error:', error, errorInfo);
+    console.error('🚨 Error stack:', error.stack);
+    console.error('🚨 Component stack:', errorInfo.componentStack);
+    // DISABLED: Auto-redirect to home after 1 second
+    // setTimeout(() => {
+    //   console.error('🚨 ErrorBoundary redirecting to home due to error');
+    //   window.location.href = '/home';
+    // }, 1000);
   }
 
   public render() {

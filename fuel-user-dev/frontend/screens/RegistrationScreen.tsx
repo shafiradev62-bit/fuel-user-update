@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Check, Eye, EyeOff, Mail, MessageSquare } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
-import { apiRegisterComplete, apiLogin } from '../services/api';
+import { apiGetSubscriptionPlans, apiRegister } from '../services/api';
 import Logo from '../components/Logo';
 import AnimatedPage from '../components/AnimatedPage';
 import VerificationSuccess from '../components/VerificationSuccess';
@@ -61,10 +61,12 @@ const Stepper = ({ currentStep }: { currentStep: number }) => {
 };
 
 const RegistrationScreen = () => {
+    console.log('📝 RegistrationScreen component rendered');
     const navigate = useNavigate();
     const { login, updateUser } = useAppContext();
     const [step, setStep] = useState(1);
     const [error, setError] = useState('');
+    const [subscriptionPlans, setSubscriptionPlans] = useState([]);
     const [formData, setFormData] = useState({
         fullName: '',
         email: '',
@@ -76,28 +78,46 @@ const RegistrationScreen = () => {
         fuelType: 'Petrol',
     });
     const [loading, setLoading] = useState(false);
+    const [selectedSubscription, setSelectedSubscription] = useState('gold');
     const [verificationMethod, setVerificationMethod] = useState<'email' | 'whatsapp' | null>(null);
 
-    const handleNext = () => setStep(s => s + 1);
+    // Load subscription plans on component mount
+    useEffect(() => {
+        const loadSubscriptionPlans = async () => {
+            try {
+                const plans = await apiGetSubscriptionPlans();
+                setSubscriptionPlans(plans);
+            } catch (error) {
+                console.error('Failed to load subscription plans:', error);
+            }
+        };
+        loadSubscriptionPlans();
+    }, []);
+
+    const handleNext = () => {
+        console.log(`🔄 Moving from step ${step} to step ${step + 1}`);
+        setStep(s => s + 1);
+    };
     const handleBack = () => {
         if (step > 1) {
+            console.log(`⬅️ Moving back from step ${step} to step ${step - 1}`);
             setStep(s => s - 1);
         } else {
-            navigate("/home");
+            console.log(`⬅️ Back from step 1 - redirecting to login`);
+            navigate("/login");
         }
     };
     
     const createAccount = async (subscription: string = 'gold') => {
-        console.log('Creating account with data:', formData, 'and subscription:', subscription);
+        console.log('🔥 createAccount called with subscription:', subscription);
         setLoading(true);
         setError('');
         
-        // Transform data to match backend API expectations
         const registrationData = {
             step1: {
-                fullName: formData.fullName,
-                email: formData.email,
-                phoneNumber: formData.phone,
+                fullName: formData.fullName.trim(),
+                email: formData.email.toLowerCase().trim(),
+                phoneNumber: formData.phone.trim(),
                 password: formData.password
             },
             step2: {
@@ -106,27 +126,28 @@ const RegistrationScreen = () => {
                 licenseNumber: formData.licenseNumber,
                 fuelType: formData.fuelType
             },
-            subscription: subscription  // Add subscription info
+            subscription: {
+                planId: subscription
+            }
         };
         
-        console.log('Sending registration data:', registrationData);
-        
         try {
-            // Navigate to verification immediately
-            setStep(4); // Go to email verification screen
+            const response = await apiRegister(registrationData);
+            console.log('✅ Registration successful:', response);
             
-            // Make API call
-            const userData = await apiRegisterComplete(registrationData);
-            console.log('Registration successful:', userData);
+            // API returns: { success: true, data: { customer: {...}, token: "...", subscription: null } }
+            const { customer, token } = response;
             
-            // Save token and user data
-            localStorage.setItem('token', userData.token);
-            updateUser(userData.customer);
+            // Only redirect if backend insert successful
+            localStorage.setItem('token', token);
+            updateUser(customer);
+            
+            // Redirect to home only after successful backend insert
+            window.location.href = '/home';
             
         } catch (error) {
-            console.error("Registration failed:", error);
+            console.error('❌ Registration failed:', error);
             
-            // Extract error message from API response
             let errorMessage = "Registration failed. Please try again.";
             if (error.response?.data?.message) {
                 errorMessage = error.response.data.message;
@@ -135,8 +156,7 @@ const RegistrationScreen = () => {
             }
             
             setError(errorMessage);
-            // Go back to step 3 if registration fails
-            setStep(3);
+            // Don't redirect on error - stay on current screen
         } finally {
             setLoading(false);
         }
@@ -147,6 +167,7 @@ const RegistrationScreen = () => {
     };
 
     const renderStep = () => {
+        console.log(`📺 Rendering step ${step}`);
         switch (step) {
             case 1:
                 return <Step1 next={handleNext} formData={formData} handleChange={handleChange} />;
@@ -154,11 +175,16 @@ const RegistrationScreen = () => {
                 return <Step2 next={handleNext} back={handleBack} formData={formData} handleChange={handleChange} />;
             case 3:
                 return <Step3 
-                    createAccount={createAccount} 
-                    editDetails={() => setStep(2)}
                     formData={formData} 
                     loading={loading}
                     error={error}
+                    selectedSubscription={selectedSubscription}
+                    setSelectedSubscription={setSelectedSubscription}
+                    subscriptionPlans={subscriptionPlans}
+                    onNext={() => {
+                        console.log('📧 Step 3 -> Step 4 (Email Verification)');
+                        setStep(4);
+                    }}
                 />;
             case 4:
                 return <EmailVerificationStep 
@@ -170,10 +196,12 @@ const RegistrationScreen = () => {
             case 5:
                 return <EmailOTPVerification 
                     formData={formData} 
+                    selectedSubscription={selectedSubscription}
                     onBack={() => setStep(4)}
                     onComplete={() => {
                         setVerificationMethod('email');
-                        setStep(8);
+                        // Auto create account after OTP verification
+                        createAccount(selectedSubscription);
                     }}
                 />;
             case 6:
@@ -185,16 +213,19 @@ const RegistrationScreen = () => {
             case 7:
                 return <WhatsAppOTPVerification 
                     formData={formData} 
+                    selectedSubscription={selectedSubscription}
                     onBack={() => setStep(6)}
                     onComplete={() => {
                         setVerificationMethod('whatsapp');
-                        setStep(8);
+                        // Auto create account after OTP verification
+                        createAccount(selectedSubscription);
                     }}
                 />;
             case 8:
                 return <VerificationSuccess 
                     type={verificationMethod || 'email'} 
                     formData={formData} 
+                    selectedSubscription={selectedSubscription}
                     onCreateAccount={createAccount} 
                 />;
             default:
@@ -517,8 +548,15 @@ const Step2 = ({ next, back, formData, handleChange }: StepProps) => {
     );
 };
 
-const Step3 = ({ createAccount, editDetails, formData, loading, error }: { createAccount: (subscription: string) => void; editDetails: () => void; formData: any; loading: boolean; error?: string }) => {
-    const [selectedSubscription, setSelectedSubscription] = useState('gold');
+const Step3 = ({ formData, loading, error, selectedSubscription, setSelectedSubscription, onNext, subscriptionPlans }: { 
+    formData: any; 
+    loading: boolean; 
+    error?: string;
+    selectedSubscription: string;
+    setSelectedSubscription: (plan: string) => void;
+    onNext: () => void;
+    subscriptionPlans: any[];
+}) => {
     
     return (
         <div className="space-y-6">
@@ -579,23 +617,23 @@ const Step3 = ({ createAccount, editDetails, formData, loading, error }: { creat
                     selectedPlan={selectedSubscription}
                     onPlanSelect={(plan) => setSelectedSubscription(plan.id)}
                     isNonSubscriber={true}
+                    subscriptionPlans={subscriptionPlans || []}
                 />
             </div>
             
             <Button 
-                onClick={() => createAccount(selectedSubscription)} 
+                onClick={onNext}
                 variant="primary"
                 size="md"
                 className="w-full py-4 rounded-full font-semibold text-base shadow-lg"
                 disabled={loading}
-                isLoading={loading}
             >
-                {loading ? 'Creating Account...' : 'Create Account'}
+                Next
             </Button>
             
             <div className="text-center">
                 <button 
-                    onClick={editDetails} 
+                    onClick={() => setStep(1)}
                     className="text-green-500 font-semibold text-base hover:underline"
                     disabled={loading}
                 >
@@ -678,18 +716,16 @@ const EmailVerificationStep = ({ formData, onBack, onNext, onTryAnotherWay }: {
             />
 
             {/* Send Code Button */}
-            <TouchFeedback className="block">
-                <Button 
-                    onClick={handleSendCode}
-                    variant="primary"
-                    size="md"
-                    className="w-full py-4 rounded-full font-semibold text-base shadow-lg"
-                    disabled={loading || !email}
-                    isLoading={loading}
-                >
-                    {loading ? 'Sending...' : 'Send Code'}
-                </Button>
-            </TouchFeedback>
+            <Button 
+                onClick={handleSendCode}
+                variant="primary"
+                size="md"
+                className="w-full py-4 rounded-full font-semibold text-base shadow-lg"
+                disabled={loading || !email}
+                isLoading={loading}
+            >
+                {loading ? 'Sending...' : 'Send Code'}
+            </Button>
 
             {/* Try Another Way */}
             <div className="text-center">
@@ -766,7 +802,7 @@ const EmailOTPVerification = ({ formData, onBack, onComplete }: {
             const data = await response.json();
             
             if (data.success) {
-                // ✅ OTP verified, now create account
+                // ✅ OTP verified, proceed to success screen
                 onComplete();
             } else {
                 setError(data.error || 'Invalid verification code');
@@ -838,18 +874,16 @@ const EmailOTPVerification = ({ formData, onBack, onComplete }: {
                 </div>
             )}
             
-            <TouchFeedback className="block">
-                <Button
-                    onClick={handleVerify}
-                    variant="primary"
-                    size="md"
-                    className="w-full rounded-full font-semibold shadow-lg hover:shadow-xl"
-                    disabled={loading || otp.some(digit => !digit)}
-                    isLoading={loading}
-                >
-                    {loading ? 'Verifying...' : 'Verify'}
-                </Button>
-            </TouchFeedback>
+            <Button
+                onClick={handleVerify}
+                variant="primary"
+                size="md"
+                className="w-full rounded-full font-semibold shadow-lg hover:shadow-xl"
+                disabled={loading || otp.some(digit => !digit)}
+                isLoading={loading}
+            >
+                {loading ? 'Verifying...' : 'Verify'}
+            </Button>
 
             {/* Resend Section */}
             <div className="text-center space-y-2">
@@ -942,13 +976,16 @@ const WhatsAppVerificationStep = ({ formData, onBack, onNext }: {
             />
 
             {/* Send Code Button */}
-            <button 
+            <Button 
                 onClick={handleSendCode}
+                variant="primary"
+                size="md"
+                className="w-full py-4 rounded-full font-semibold text-base shadow-lg"
                 disabled={loading || !phone}
-                className="w-full py-4 bg-[#3AC36C] hover:bg-[#2ea85a] text-white rounded-full font-semibold text-base shadow-lg transition-all duration-300 active:scale-95 disabled:opacity-70"
+                isLoading={loading}
             >
                 {loading ? 'Sending...' : 'Send Code'}
-            </button>
+            </Button>
 
             {/* Back to Email */}
             <div className="text-center">
@@ -1025,7 +1062,7 @@ const WhatsAppOTPVerification = ({ formData, onBack, onComplete }: {
             const data = await response.json();
             
             if (data.success) {
-                // ✅ OTP verified, now create account
+                // ✅ OTP verified, proceed to success screen
                 onComplete();
             } else {
                 setError(data.error || 'Invalid verification code');
@@ -1097,18 +1134,16 @@ const WhatsAppOTPVerification = ({ formData, onBack, onComplete }: {
                 </div>
             )}
             
-            <TouchFeedback className="block">
-                <Button
-                    onClick={handleVerify}
-                    variant="primary"
-                    size="md"
-                    className="w-full rounded-full font-semibold shadow-lg hover:shadow-xl"
-                    disabled={loading || otp.some(digit => !digit)}
-                    isLoading={loading}
-                >
-                    {loading ? 'Verifying...' : 'Verify'}
-                </Button>
-            </TouchFeedback>
+            <Button
+                onClick={handleVerify}
+                variant="primary"
+                size="md"
+                className="w-full rounded-full font-semibold shadow-lg hover:shadow-xl"
+                disabled={loading || otp.some(digit => !digit)}
+                isLoading={loading}
+            >
+                {loading ? 'Verifying...' : 'Verify'}
+            </Button>
 
             {/* Resend Section */}
             <div className="text-center space-y-2">

@@ -1,21 +1,67 @@
 import React from 'react';
 import { Check } from 'lucide-react';
-import { SubscriptionPlan, SUBSCRIPTION_PLANS } from '../types/subscription';
 import TapEffectButton from './TapEffectButton';
+
+interface SubscriptionPlan {
+  id: string;
+  name: string;
+  price: number;
+  duration: string;
+  users: number;
+  vehicles: number;
+  features: string[];
+  popular?: boolean;
+}
 
 interface SubscriptionPlansProps {
   selectedPlan?: string;
   onPlanSelect: (plan: SubscriptionPlan) => void;
   currentPlan?: string;
   isNonSubscriber?: boolean;
+  subscriptionPlans?: SubscriptionPlan[];
 }
+
+// Default plans fallback
+const DEFAULT_PLANS: SubscriptionPlan[] = [
+  {
+    id: 'basic',
+    name: 'Basic',
+    price: 9.99,
+    duration: 'month',
+    users: 1,
+    vehicles: 1,
+    features: ['Basic fuel delivery', 'Email support']
+  },
+  {
+    id: 'gold',
+    name: 'Gold',
+    price: 19.99,
+    duration: 'month',
+    users: 2,
+    vehicles: 2,
+    features: ['Priority delivery', '24/7 support', 'Fuel tracking'],
+    popular: true
+  },
+  {
+    id: 'premium',
+    name: 'Premium',
+    price: 29.99,
+    duration: 'month',
+    users: 5,
+    vehicles: 5,
+    features: ['Express delivery', 'Premium support', 'Advanced analytics', 'Custom scheduling']
+  }
+];
 
 const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
   selectedPlan,
   onPlanSelect,
   currentPlan,
-  isNonSubscriber = false
+  isNonSubscriber = false,
+  subscriptionPlans = DEFAULT_PLANS
 }) => {
+  const plans = subscriptionPlans.length > 0 ? subscriptionPlans : DEFAULT_PLANS;
+
   return (
     <div className="space-y-4">
       {isNonSubscriber && (
@@ -38,7 +84,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
       )}
 
       <div className="grid gap-4">
-        {SUBSCRIPTION_PLANS.map((plan) => {
+        {plans.map((plan) => {
           const isSelected = selectedPlan === plan.id;
           const isCurrent = currentPlan === plan.id;
 
@@ -84,7 +130,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
                   <Check className="w-5 h-5 text-[#3AC36C] mr-3 flex-shrink-0" />
                   <span className="font-medium">{plan.vehicles} vehicle{plan.vehicles > 1 ? 's' : ''} included</span>
                 </div>
-                {plan.features.map((feature, index) => (
+                {(plan.features || []).map((feature, index) => (
                   <div key={index} className="flex items-center text-sm text-gray-600">
                     <Check className="w-5 h-5 text-[#3AC36C] mr-3 flex-shrink-0" />
                     <span className="font-medium">{feature}</span>
