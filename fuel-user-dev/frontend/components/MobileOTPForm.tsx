@@ -63,27 +63,16 @@ const MobileOTPForm: React.FC<MobileOTPFormProps> = ({ onBack, onSuccess, onErro
 
     setIsLoading(true);
     try {
-      const base = import.meta.env.VITE_API_BASE_URL || 'https://apidecor.kelolahrd.life';
-      const response = await fetch(`${base}/api/otp/email/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setOtpSent(true);
-        startResendTimer();
-        // Show success message
-        if (data.simulated && data.otp) {
-          onError(`OTP sent! For testing: ${data.otp}`);
-        } else {
-          onError('OTP sent to your email!');
-        }
+      const { apiSendEmailOTP } = await import('../services/api');
+      const result = await apiSendEmailOTP(email);
+      
+      setOtpSent(true);
+      startResendTimer();
+      // Show success message
+      if (result.simulated && result.otp) {
+        onError(`OTP sent! For testing: ${result.otp}`);
       } else {
-        const errorMsg = data?.error || 'Failed to send OTP';
-        onError(errorMsg);
+        onError('OTP sent to your email!');
       }
     } catch (err: any) {
       console.error('Send OTP error:', err);
@@ -93,7 +82,14 @@ const MobileOTPForm: React.FC<MobileOTPFormProps> = ({ onBack, onSuccess, onErro
     }
   };
 
-  const verifyOTP = async () => {
+  const verifyOTP = async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    if (isLoading) return; // Prevent double submission
+    
     const otpCode = otp.join('');
     if (otpCode.length !== 6) {
       onError('Please enter a 6-digit code');
@@ -102,40 +98,29 @@ const MobileOTPForm: React.FC<MobileOTPFormProps> = ({ onBack, onSuccess, onErro
 
     setIsLoading(true);
     try {
-      const base = import.meta.env.VITE_API_BASE_URL || 'https://apidecor.kelolahrd.life';
-      const response = await fetch(`${base}/api/otp/email/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp: otpCode })
-      });
+      const { apiVerifyEmailOTP } = await import('../services/api');
+      const result = await apiVerifyEmailOTP(email, otpCode);
+      
+      // Create user data for successful login
+      const userData = {
+        id: `user-${Date.now()}`,
+        fullName: email.split('@')[0],
+        email,
+        phone: '',
+        city: '',
+        avatarUrl: `https://ui-avatars.com/api/?name=${email.split('@')[0]}&background=random`,
+        vehicles: []
+      };
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        // Create user data for successful login
-        const userData = {
-          id: `user-${Date.now()}`,
-          fullName: email.split('@')[0],
-          email,
-          phone: '',
-          city: '',
-          avatarUrl: `https://ui-avatars.com/api/?name=${email.split('@')[0]}&background=random`,
-          vehicles: []
-        };
-
-        onSuccess(userData);
-      } else {
-        const errorMsg = data?.error || 'Invalid OTP code';
-        onError(errorMsg);
-        // Clear OTP fields on error
-        setOtp(['', '', '', '', '', '']);
-        if (inputRefs.current[0]) {
-          inputRefs.current[0]?.focus();
-        }
-      }
+      onSuccess(userData);
     } catch (err: any) {
       console.error('Verify OTP error:', err);
-      onError(err.message || 'Failed to verify OTP');
+      onError(err.message || 'Invalid OTP code');
+      // Clear OTP fields on error
+      setOtp(['', '', '', '', '', '']);
+      if (inputRefs.current[0]) {
+        inputRefs.current[0]?.focus();
+      }
     } finally {
       setIsLoading(false);
     }
@@ -146,31 +131,20 @@ const MobileOTPForm: React.FC<MobileOTPFormProps> = ({ onBack, onSuccess, onErro
     
     setIsLoading(true);
     try {
-      const base = import.meta.env.VITE_API_BASE_URL || 'https://apidecor.kelolahrd.life';
-      const response = await fetch(`${base}/api/otp/email/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        // Reset OTP fields
-        setOtp(['', '', '', '', '', '']);
-        startResendTimer();
-        if (inputRefs.current[0]) {
-          inputRefs.current[0]?.focus();
-        }
-        // Show success message
-        if (data.simulated && data.otp) {
-          onError(`New OTP sent! For testing: ${data.otp}`);
-        } else {
-          onError('New OTP sent to your email!');
-        }
+      const { apiSendEmailOTP } = await import('../services/api');
+      const result = await apiSendEmailOTP(email);
+      
+      // Reset OTP fields
+      setOtp(['', '', '', '', '', '']);
+      startResendTimer();
+      if (inputRefs.current[0]) {
+        inputRefs.current[0]?.focus();
+      }
+      // Show success message
+      if (result.simulated && result.otp) {
+        onError(`New OTP sent! For testing: ${result.otp}`);
       } else {
-        const errorMsg = data?.error || 'Failed to resend OTP';
-        onError(errorMsg);
+        onError('New OTP sent to your email!');
       }
     } catch (err: any) {
       console.error('Resend OTP error:', err);
@@ -202,8 +176,12 @@ const MobileOTPForm: React.FC<MobileOTPFormProps> = ({ onBack, onSuccess, onErro
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    
+    if (isLoading) return; // Prevent double submission
+    
     if (otpSent) {
-      verifyOTP();
+      verifyOTP(e);
     } else {
       sendOTP();
     }
@@ -279,8 +257,15 @@ const MobileOTPForm: React.FC<MobileOTPFormProps> = ({ onBack, onSuccess, onErro
             <div className="flex space-x-3">
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || otp.join('').length !== 6}
                 className="flex-1 bg-primary text-white py-3 rounded-xl text-base font-semibold shadow-lg transition-all active:scale-95 hover:shadow-xl disabled:bg-primary/70 mobile-btn-md ripple"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!isLoading && otp.join('').length === 6) {
+                    verifyOTP(e);
+                  }
+                }}
               >
                 {isLoading ? 'Verifying...' : 'Verify'}
               </button>

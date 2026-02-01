@@ -83,6 +83,10 @@ const ForgotPasswordScreen = () => {
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    
+    if (isLoading) return; // Prevent double submission
+    
     setError('');
     setSuccess('');
     setIsLoading(true);
@@ -283,7 +287,7 @@ const ForgotPasswordScreen = () => {
 
             {/* Description */}
             <p className="text-base text-gray-600 dark:text-gray-400 text-center max-w-sm">
-              Enter four-digits verification code sent to {email}
+              Enter six-digits verification code sent to {email}
             </p>
 
             {/* Error/Success Messages */}
@@ -321,6 +325,13 @@ const ForgotPasswordScreen = () => {
                 type="submit"
                 disabled={isLoading || otp.some(digit => !digit)}
                 className="w-full py-4 bg-[#3AC36C] hover:bg-[#2ea85a] text-white rounded-full font-semibold text-base shadow-lg transition-all duration-300 active:scale-95 disabled:opacity-70"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!isLoading && !otp.some(digit => !digit)) {
+                    handleVerifyOtp(e);
+                  }
+                }}
               >
                 {isLoading ? 'Verifying...' : 'Verify'}
               </button>

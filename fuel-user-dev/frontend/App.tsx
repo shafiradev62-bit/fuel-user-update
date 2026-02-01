@@ -38,7 +38,6 @@ import PrivacyPolicyScreen from './screens/PrivacyPolicyScreen';
 import AccountDeletionScreen from './screens/AccountDeletionScreen';
 import AccountDeletedSuccessScreen from './screens/AccountDeletedSuccessScreen';
 import ChatScreen from './screens/ChatScreen';
-import ScreenRecordingDemo from './screens/ScreenRecordingDemo';
 import ReceiptsScreen from './screens/ReceiptsScreen';
 import PasswordResetSuccess from './components/PasswordResetSuccess';
 import BottomNav from './components/BottomNav';

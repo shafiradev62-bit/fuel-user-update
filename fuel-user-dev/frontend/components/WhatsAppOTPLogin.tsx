@@ -41,41 +41,39 @@ export default function WhatsAppOTPLogin({ onLoginSuccess }: WhatsAppOTPLoginPro
 
     try {
       const formattedPhone = formatPhoneNumber(phoneNumber)
+      const { apiSendWhatsAppOTP } = await import('../services/api')
       
-      const response = await fetch('/api/otp/whatsapp/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber: formattedPhone })
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        setStep('otp')
-        setCountdown(60)
+      const data = await apiSendWhatsAppOTP(formattedPhone)
+      
+      setStep('otp')
+      setCountdown(60)
+      
+      // Start countdown
+      const timer = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(timer)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
         
-        // Start countdown
-        const timer = setInterval(() => {
-          setCountdown(prev => {
-            if (prev <= 1) {
-              clearInterval(timer)
-              return 0
-            }
-            return prev - 1
-          })
-        }, 1000)
-        
-      } else {
-        setError(data.error || 'Gagal mengirim OTP')
-      }
-    } catch (err) {
-      setError('Terjadi kesalahan. Coba lagi.')
+    } catch (err: any) {
+      setError(err.message || 'Gagal mengirim OTP')
     } finally {
       setLoading(false)
     }
   }
 
-  const verifyOTP = async () => {
+  const verifyOTP = async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    if (loading) return; // Prevent double submission
+    
     if (!otp.trim() || otp.length !== 6) {
       setError('Masukkan kode OTP 6 digit')
       return
@@ -86,25 +84,21 @@ export default function WhatsAppOTPLogin({ onLoginSuccess }: WhatsAppOTPLoginPro
 
     try {
       const formattedPhone = formatPhoneNumber(phoneNumber)
+      const { apiVerifyWhatsAppOTP } = await import('../services/api')
       
-      const response = await fetch('/api/otp/whatsapp/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          phoneNumber: formattedPhone, 
-          otp: otp.trim() 
-        })
+      const data = await apiVerifyWhatsAppOTP(formattedPhone, otp.trim())
+      
+      onLoginSuccess(data.user || {
+        id: `user-${Date.now()}`,
+        fullName: 'WhatsApp User',
+        email: '',
+        phone: formattedPhone,
+        city: '',
+        avatarUrl: 'https://ui-avatars.com/api/?name=WhatsApp+User&background=random',
+        vehicles: []
       })
-
-      const data = await response.json()
-
-      if (data.success) {
-        onLoginSuccess(data.user)
-      } else {
-        setError(data.error || 'Kode OTP salah')
-      }
-    } catch (err) {
-      setError('Terjadi kesalahan. Coba lagi.')
+    } catch (err: any) {
+      setError(err.message || 'Kode OTP salah')
     } finally {
       setLoading(false)
     }
@@ -218,7 +212,13 @@ export default function WhatsAppOTPLogin({ onLoginSuccess }: WhatsAppOTPLoginPro
                 Kembali
               </button>
               <button
-                onClick={verifyOTP}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!loading && otp.length === 6) {
+                    verifyOTP(e);
+                  }
+                }}
                 disabled={loading || otp.length !== 6}
                 className="flex-1 bg-green-600 text-white py-3 px-4 rounded-2xl font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >

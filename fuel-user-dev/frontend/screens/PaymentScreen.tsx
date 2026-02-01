@@ -7,6 +7,8 @@ import { useAppContext } from '../context/AppContext';
 import TapEffectButton from '../components/TapEffectButton';
 import CheckoutBreakdownComponent from '../components/CheckoutBreakdown';
 import ConfettiEffect from '../components/ConfettiEffect';
+import StripePaymentForm from '../components/StripePaymentForm';
+import { createPaymentIntent } from '../services/stripe';
 
 const PaymentScreen = () => {
     const navigate = useNavigate();
@@ -23,6 +25,8 @@ const PaymentScreen = () => {
     const [trackingId, setTrackingId] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [showConfetti, setShowConfetti] = useState(false);
+    const [clientSecret, setClientSecret] = useState<string | null>(null);
+    const [showStripeForm, setShowStripeForm] = useState(false);
 
     const {
         formData,
@@ -127,178 +131,129 @@ const PaymentScreen = () => {
     }, []);
 
     const handlePlaceOrder = async () => {
-        console.log('🔍 Place Order clicked - User state:', user);
-        console.log('🔍 User ID:', user?.id);
-        console.log('🔍 Token:', token);
-
-        // Allow guest browsing but require authentication for order placement
         if (!user) {
-            console.log('❌ No user found, redirecting to login');
-            // Store the current checkout state and redirect to login
-            const checkoutState = {
-                formData,
-                station,
-                cartItems,
-                selectedFuelFriend,
-                subscriptionPlan,
-                tip,
-                additionalVehicles,
-                breakdown
-            };
-
-            // Store checkout state in sessionStorage
-            sessionStorage.setItem('pendingCheckout', JSON.stringify(checkoutState));
-
-            // Store redirect URL
             localStorage.setItem('redirectAfterLogin', '/payment');
-
             alert('Please login to complete your order');
             navigate('/login');
             return;
         }
 
         if (!station?.id) {
-            alert('Station information missing. Please go back and select a station.');
+            alert('Station information missing.');
             navigate('/home');
             return;
         }
 
+        // For card payments, show Stripe form
+        if (selectedPayment === 'card') {
+            await initializeStripePayment();
+            return;
+        }
+
+        // For other payment methods, process directly
+        await processOrder();
+    };
+
+    const initializeStripePayment = async () => {
         setIsProcessing(true);
         try {
-            // Simulate payment processing with delay
-            await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+            const vehicleId = user?.vehicles?.[0]?.id;
+            if (!vehicleId) {
+                throw new Error('No vehicle found. Please add a vehicle first.');
+            }
 
-            // Determine if user is in UK or US based on location or other factors
-            // For now, we'll use a simple heuristic based on user data
-            // isUK is defined at component scope
-
-            // Determine tax based on region
-            const taxRate = isUK ? 0.20 : 0.08; // 20% VAT for UK, 8% sales tax for US
-            const orderTotal = breakdown?.total || 0;
-            const taxAmount = orderTotal * taxRate;
-            const grandTotal = orderTotal + taxAmount;
-
-            // Generate order data
-            const orderData: any = {
-                customerId: user.id.toString(),
-                stationId: station.id.toString(),
-                deliveryAddress: formData?.address || user?.address || user?.city || 'Address not provided',
+            // Create order first to get payment intent
+            const orderData = {
+                vehicleId,
+                deliveryAddress: formData?.address || user?.city || 'Address not provided',
                 deliveryPhone: formData?.phoneNumber || user.phone || '1234567890',
-                fuelType: formData?.fuelType || 'Premium',
-                fuelQuantity: (formData?.quantity?.replace(' liters', '') || '10').toString(),
-                fuelCost: (breakdown?.fuelCost || 0).toFixed(2),
-                convenienceItemsCost: (breakdown?.convenienceItemsCost || 0).toFixed(2),
-                serviceFee: (breakdown?.serviceFee || 0).toFixed(2),
-                nonSubscriberFee: (breakdown?.nonSubscriberFee || 0).toFixed(2),
-                subscriptionPlanId: subscriptionPlan?.id || null,
-                subscriptionCost: (breakdown?.subscriptionPlan?.price || 0).toFixed(2),
-                additionalVehicles: additionalVehicles || 0,
-                additionalVehicleCost: (breakdown?.additionalVehicleCost || 0).toFixed(2),
-                vat: (breakdown?.vat || 0).toFixed(2),
-                tip: (tip || 0).toFixed(2),
-                totalAmount: orderTotal.toFixed(2),
-                taxAmount: taxAmount.toFixed(2),
-                grandTotal: grandTotal.toFixed(2),
-                vehicleType: vehicleType,
-                fuelFriendId: selectedFuelFriend?.id || '1',
-                fuelFriendName: selectedFuelFriend?.name || 'John Doe',
-                fuelFriendPhoto: selectedFuelFriend?.avatarUrl || '/fuel friend.png',
-                orderStatus: 'pending',
-                paymentMethod: selectedPayment === 'card' ? 'credit_card' : selectedPayment,
-                paymentStatus: 'paid',
-                orderDate: new Date().toISOString(),
-                estimatedDeliveryTime: formData?.deliveryTime || 'Instant order',
-                orderType: formData?.orderType || 'instant',
-                cartItems: cartItems.map(item => ({
-                    id: item.id,
-                    name: item.name,
-                    price: parseFloat(item.price),
-                    quantity: parseInt(item.quantity)
-                })),
-                currency: isUK ? 'GBP' : 'USD',
-                taxRate: taxRate,
-                taxLabel: isUK ? 'VAT' : 'Sales Tax',
-                trackingNumber: `FF-${Math.floor(100000 + Math.random() * 900000)}`, // Generate tracking ID like FF-782190
-                status: 'on_the_way', // Changed from 'PAID' to 'on_the_way' for proper tracking
-                timestamp: new Date().toISOString(),
-                // Add fuelfriend object for TrackOrderScreen compatibility
-                fuelfriend: {
-                    name: selectedFuelFriend?.name || 'John Doe',
-                    location: formData?.address || user?.address || user?.city || 'On the way to your location',
-                    phone: formData?.phoneNumber || user.phone || '1234567890',
-                    avatar: selectedFuelFriend?.avatarUrl || '/fuel friend.png'
-                }
+                fuelType: formData?.fuelType || 'Petrol',
+                fuelQuantity: formData?.quantity?.replace(' liters', '') || '20',
+                fuelCost: (breakdown?.fuelCost || 60).toFixed(2),
+                deliveryFee: (breakdown?.serviceFee || 5).toFixed(2),
+                totalAmount: (breakdown?.total || 65).toFixed(2),
+                orderType: formData?.orderType || 'instant'
             };
 
-            console.log('🔍 Order data being sent:', {
-                customerId: orderData.customerId,
-                stationId: orderData.stationId,
-                vehicleId: orderData.vehicleId,
-                fuelFriendId: orderData.fuelFriendId,
-                user: user,
-                userVehicles: user?.vehicles
-            });
-
-            // Add optional fields only if they have values
-            if (selectedFuelFriend?.id) {
-                orderData.fuelFriendId = selectedFuelFriend.id.toString();
-            }
-
-            // Get vehicle ID from user data or create default vehicle
-            let vehicleId = null;
-            if (user?.vehicles && user.vehicles.length > 0) {
-                const primaryVehicle = user.vehicles[0]; // Just use first vehicle since no isPrimary property
-                vehicleId = primaryVehicle?.id;
-            }
-
-            // If no vehicle found, try to get from API or use a default
-            if (!vehicleId && user?.id) {
-                console.log('⚠️ No vehicle in user context, will create order without vehicleId');
-                // Backend will handle null vehicleId
-            }
-
-            if (vehicleId) {
-                orderData.vehicleId = vehicleId.toString();
-                console.log('✅ Vehicle ID added to order:', vehicleId);
-            } else {
-                console.log('⚠️ No vehicle found for user, order will be created without vehicleId');
-            }
-
-            // Simulate successful order creation
-            // In real implementation, this would call the API
-            const result = {
-                success: true,
-                trackingNumber: orderData.trackingNumber,
-                orderId: `ORD-${Date.now()}`,
-                ...orderData
-            };
-
-            if (result) {
-                setTrackingId(result.trackingNumber);
-
-                // Store order details for receipt
-                sessionStorage.setItem('lastOrder', JSON.stringify(result));
-
-                // Verify the data was stored
-                const storedOrder = sessionStorage.getItem('lastOrder');
-                console.log('✅ Order stored in sessionStorage:', storedOrder);
-
-                console.log('✅ Order created successfully, showing success modal');
-
-                // Show success modal and confetti
-                setShowSuccessModal(true);
-                setShowConfetti(true);
-                // Stop processing but don't navigate yet
-                setIsProcessing(false);
-            } else {
-                throw new Error('Failed to create order');
-            }
-        } catch (error) {
-            console.error('Order creation failed:', error);
-            alert('Failed to create order. Please try again.');
+            const orderResult = await apiCreateOrder(orderData);
+            
+            // Store order info for later confirmation
+            sessionStorage.setItem('pendingOrder', JSON.stringify(orderResult));
+            
+            setClientSecret(orderResult.payment.clientSecret);
+            setShowStripeForm(true);
+        } catch (error: any) {
+            alert(error.message || 'Failed to initialize payment.');
         } finally {
             setIsProcessing(false);
         }
+    };
+
+    const processOrder = async (paymentIntentId?: string) => {
+        setIsProcessing(true);
+        try {
+            const orderTotal = breakdown?.total || 0;
+            const vehicleId = user?.vehicles?.[0]?.id;
+            
+            if (!vehicleId) {
+                throw new Error('No vehicle found. Please add a vehicle first.');
+            }
+
+            // Step 1: Create order (gets payment intent)
+            const orderData = {
+                vehicleId,
+                deliveryAddress: formData?.address || user?.city || 'Address not provided',
+                deliveryPhone: formData?.phoneNumber || user.phone || '1234567890',
+                fuelType: formData?.fuelType || 'Petrol',
+                fuelQuantity: formData?.quantity?.replace(' liters', '') || '20',
+                fuelCost: (breakdown?.fuelCost || 60).toFixed(2),
+                deliveryFee: (breakdown?.serviceFee || 5).toFixed(2),
+                totalAmount: orderTotal.toFixed(2),
+                orderType: formData?.orderType || 'instant'
+            };
+
+            const orderResult = await apiCreateOrder(orderData);
+            
+            // Step 2: If payment intent provided, confirm payment
+            if (paymentIntentId) {
+                await apiConfirmPayment(orderResult.orderId, paymentIntentId);
+            }
+            
+            setTrackingId(orderResult.trackingNumber);
+            sessionStorage.setItem('lastOrder', JSON.stringify(orderResult));
+            
+            setShowSuccessModal(true);
+            setShowConfetti(true);
+        } catch (error: any) {
+            alert(error.message || 'Failed to create order.');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const handleStripeSuccess = async (paymentIntent: any) => {
+        setShowStripeForm(false);
+        
+        try {
+            const pendingOrder = JSON.parse(sessionStorage.getItem('pendingOrder') || '{}');
+            
+            // Confirm payment with backend
+            await apiConfirmPayment(pendingOrder.orderId, paymentIntent.id);
+            
+            setTrackingId(pendingOrder.trackingNumber);
+            sessionStorage.setItem('lastOrder', JSON.stringify(pendingOrder));
+            sessionStorage.removeItem('pendingOrder');
+            
+            setShowSuccessModal(true);
+            setShowConfetti(true);
+        } catch (error: any) {
+            alert(error.message || 'Payment confirmation failed.');
+        }
+    };
+
+    const handleStripeError = (error: string) => {
+        setShowStripeForm(false);
+        alert(error);
     };
 
     return (
@@ -573,6 +528,30 @@ const PaymentScreen = () => {
                                     Back To Home
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Stripe Payment Modal */}
+                {showStripeForm && clientSecret && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-semibold">Complete Payment</h3>
+                                <button
+                                    onClick={() => setShowStripeForm(false)}
+                                    className="p-2 text-gray-400 hover:text-gray-600"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <StripePaymentForm
+                                clientSecret={clientSecret}
+                                amount={Math.round(((breakdown?.total || 0) * (1 + (isUK ? 0.20 : 0.08))) * 100)}
+                                onSuccess={handleStripeSuccess}
+                                onError={handleStripeError}
+                                loading={isProcessing}
+                            />
                         </div>
                     </div>
                 )}
