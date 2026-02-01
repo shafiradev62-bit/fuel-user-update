@@ -352,39 +352,27 @@ const App = () => {
     };
 
     const login = async (email: string, pass: string) => {
-        // Mock authentication - accept any credentials
-        const mockUserData: User = {
-            id: `user-${Date.now()}`,
-            fullName: email.split('@')[0],
-            email: email,
-            phone: '+1234567890',
-            city: 'New York', // Changed from Jakarta to New York
-            avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(email.split('@')[0])}&background=random`,
-            vehicles: [
-                {
-                    id: `vehicle-${Date.now()}`,
-                    brand: 'Toyota',
-                    color: 'Blue',
-                    licenseNumber: 'ABC123',
-                    fuelType: 'Petrol'
-                }
-            ]
-        };
-
-        setUser(mockUserData);
-        setIsAuthenticated(true);
-        const mockToken = `mock_token_${Date.now()}`;
-        setToken(mockToken);
-        // Save both token and user data
-        localStorage.setItem('token', mockToken);
-        localStorage.setItem('user', JSON.stringify(mockUserData));
-
-        // Register FCM token for push notifications
+        console.log('🔍 Starting login process for:', email);
+        
         try {
-            const { pushNotificationService } = await import('./services/pushNotification');
-            await pushNotificationService.initializePushNotifications(mockUserData.id);
-        } catch (notifError) {
-            console.log('Push notification setup failed:', notifError);
+            const userData = await apiLogin(email, pass);
+            console.log('🔑 Login response:', userData);
+            
+            const token = userData.token;
+            
+            setToken(token);
+            setUser(userData);
+            setIsAuthenticated(true);
+            console.log('✅ State updated');
+            
+            localStorage.setItem('token', token);
+            localStorage.setItem('user', JSON.stringify(userData));
+            
+            const savedToken = localStorage.getItem('token');
+            console.log('✅ Token saved to localStorage:', savedToken);
+        } catch (error: any) {
+            console.error('❌ Login failed:', error);
+            throw error;
         }
     };
 
@@ -402,21 +390,34 @@ const App = () => {
                     avatarUrl: 'https://ui-avatars.com/api/?name=Google+User&background=random',
                     vehicles: []
                 };
+                const token = `mock_token_${Date.now()}`;
+                
+                // Set state first
+                setToken(token);
                 setUser(userData);
                 setIsAuthenticated(true);
+                
+                // Then save to localStorage
+                localStorage.setItem('token', token);
                 localStorage.setItem('user', JSON.stringify(userData));
-                localStorage.setItem('token', `mock_token_${Date.now()}`);
+                
+                console.log('✅ Google login fallback successful, token saved:', token);
                 return;
             }
 
             const userData = await apiLoginWithGoogleCredential();
+            const token = userData.token || `mock_token_${Date.now()}`;
+            
+            // Set state first
+            setToken(token);
             setUser(userData);
             setIsAuthenticated(true);
-            const token = userData.token || `mock_token_${Date.now()}`;
-            setToken(token);
-            // Save both token and user data
+            
+            // Then save to localStorage
             localStorage.setItem('token', token);
             localStorage.setItem('user', JSON.stringify(userData));
+            
+            console.log('✅ Google login successful, token saved:', token);
         } catch (error) {
             console.error('Google login error:', error);
             // Fallback to mock data on error
@@ -429,12 +430,18 @@ const App = () => {
                 avatarUrl: 'https://ui-avatars.com/api/?name=Google+User&background=random',
                 vehicles: []
             };
+            const token = `mock_token_${Date.now()}`;
+            
+            // Set state first
+            setToken(token);
             setUser(userData);
             setIsAuthenticated(true);
-            const token = `mock_token_${Date.now()}`;
-            setToken(token);
-            localStorage.setItem('user', JSON.stringify(userData));
+            
+            // Then save to localStorage
             localStorage.setItem('token', token);
+            localStorage.setItem('user', JSON.stringify(userData));
+            
+            console.log('✅ Google login error fallback successful, token saved:', token);
         }
     };
 

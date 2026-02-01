@@ -22,11 +22,14 @@ const LoginFormScreen = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🔍 handleLogin called with:', { email, password });
     setError('');
     setIsLoading(true);
 
     try {
+      console.log('🔍 Calling login function...');
       await login(email, password);
+      console.log('🔍 Login function completed');
 
       // Check if there's a redirect URL stored
       const redirectAfterLogin = localStorage.getItem('redirectAfterLogin');
@@ -52,6 +55,7 @@ const LoginFormScreen = () => {
         navigate('/home');
       }
     } catch (err: any) {
+      console.error('Login error:', err);
       setError(err.message || 'Invalid email or password');
     } finally {
       setIsLoading(false);
@@ -156,6 +160,7 @@ const LoginFormScreen = () => {
             className="w-full py-4 rounded-full font-semibold text-base shadow-lg mt-6"
             isLoading={isLoading}
             disabled={isLoading}
+            onClick={() => console.log('🔍 Login button clicked')}
           >
             {isLoading ? "Logging in..." : "Log In"}
           </Button>

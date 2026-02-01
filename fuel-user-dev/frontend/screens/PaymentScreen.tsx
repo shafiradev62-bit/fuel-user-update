@@ -165,8 +165,8 @@ const PaymentScreen = () => {
             // Create order first to get payment intent
             const orderData = {
                 vehicleId,
-                deliveryAddress: formData?.address || user?.city || 'Address not provided',
-                deliveryPhone: formData?.phoneNumber || user.phone || '1234567890',
+                deliveryAddress: formData?.address || user?.city || user?.address || 'Address not provided',
+                deliveryPhone: formData?.phoneNumber || user?.phone || user?.phoneNumber || '',
                 fuelType: formData?.fuelType || 'Petrol',
                 fuelQuantity: formData?.quantity?.replace(' liters', '') || '20',
                 fuelCost: (breakdown?.fuelCost || 60).toFixed(2),
@@ -174,6 +174,12 @@ const PaymentScreen = () => {
                 totalAmount: (breakdown?.total || 65).toFixed(2),
                 orderType: formData?.orderType || 'instant'
             };
+
+            console.log('📦 Creating order with data:', orderData);
+            
+            if (!orderData.deliveryPhone) {
+                throw new Error('Phone number is required');
+            }
 
             const orderResult = await apiCreateOrder(orderData);
             
@@ -202,8 +208,8 @@ const PaymentScreen = () => {
             // Step 1: Create order (gets payment intent)
             const orderData = {
                 vehicleId,
-                deliveryAddress: formData?.address || user?.city || 'Address not provided',
-                deliveryPhone: formData?.phoneNumber || user.phone || '1234567890',
+                deliveryAddress: formData?.address || user?.city || user?.address || 'Address not provided',
+                deliveryPhone: formData?.phoneNumber || user?.phone || user?.phoneNumber || '',
                 fuelType: formData?.fuelType || 'Petrol',
                 fuelQuantity: formData?.quantity?.replace(' liters', '') || '20',
                 fuelCost: (breakdown?.fuelCost || 60).toFixed(2),
@@ -211,6 +217,12 @@ const PaymentScreen = () => {
                 totalAmount: orderTotal.toFixed(2),
                 orderType: formData?.orderType || 'instant'
             };
+
+            console.log('📦 Creating order with data:', orderData);
+            
+            if (!orderData.deliveryPhone) {
+                throw new Error('Phone number is required');
+            }
 
             const orderResult = await apiCreateOrder(orderData);
             

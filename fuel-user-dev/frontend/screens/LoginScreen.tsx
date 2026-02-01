@@ -17,9 +17,12 @@ const LoginScreen = () => {
   }, []);
 
   const handleGoogleSignIn = async () => {
+    console.log('🔍 handleGoogleSignIn called');
     try {
       setIsGoogleLoading(true);
+      console.log('🔍 Calling loginWithGoogle...');
       await loginWithGoogle();
+      console.log('🔍 loginWithGoogle completed');
 
       // Check if there's a redirect URL stored
       const redirectAfterLogin = localStorage.getItem('redirectAfterLogin');

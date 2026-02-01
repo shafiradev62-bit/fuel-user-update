@@ -111,6 +111,7 @@ const HomeScreen = () => {
   useEffect(() => {
     const validateToken = async () => {
       const token = localStorage.getItem('token');
+      
       if (!token) {
         navigate('/login');
         return;
