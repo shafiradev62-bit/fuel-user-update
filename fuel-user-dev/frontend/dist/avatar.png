@@ -1,0 +1,5 @@
+<!-- SVG placeholder for avatar -->
+<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+  <circle cx="14" cy="14" r="14" fill="#e5e7eb"/>
+  <path d="M14 6c2.2 0 4 1.8 4 4s-1.8 4-4 4-4-1.8-4-4 1.8-4 4-4zm0 18c-4.4 0-8-3.6-8-8 0-.9.1-1.7.4-2.4 1.6 1.2 3.6 1.9 5.8 1.9h3.6c2.2 0 4.2-.7 5.8-1.9.3.7.4 1.5.4 2.4 0 4.4-3.6 8-8 8z" fill="#fff"/>
+</svg>
